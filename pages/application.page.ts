@@ -1,18 +1,27 @@
 
 import { Page, expect } from '@playwright/test';
-import { fillByLabel } from './helpers';
+import { fillByLabel, clickContinue } from './helpers';
 import type { ApplicantData } from '../utils/testData';
 
 export class ApplicationPage {
   constructor(private readonly page: Page) {}
 
+  // PAGE 1: Applicant Details
   async fillPage1(data: ApplicantData) {
     await fillByLabel(this.page, /address/i, data.address);
     await fillByLabel(this.page, /city/i, data.city);
     await fillByLabel(this.page, /state/i, data.state);
-    await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
+    await fillByLabel(
+      this.page,
+      /zip|postal code/i,
+      data.postalCode
+    );
 
-    const country = this.page.getByPlaceholder(/enter your country/i);
+    const country = this.page.getByPlaceholder(
+      /enter your country/i
+    );
+
+    await country.click();
     await country.fill('India');
 
     const indiaOption = this.page.getByRole('option', {
@@ -26,97 +35,190 @@ export class ApplicationPage {
 
     await expect(country).toHaveValue('India');
 
-    await this.page.getByRole('button', {
-      name: /next page/i
-    }).click();
+    await clickContinue(this.page);
+
+    await expect(
+      this.page.getByText('Extracurricular Activities', {
+        exact: true
+      }).first()
+    ).toBeVisible({ timeout: 20000 });
   }
 
+  async completeFirstPage(data: ApplicantData) {
+    await this.fillPage1(data);
+  }
+
+  // CONTRIBUTOR REQUEST
   async validateMinimumTwoActivities() {
-    await this.page.getByRole('button', {
-      name: /add contributor/i
-    }).click();
+    const addContributorButton = this.page.getByRole(
+      'button',
+      { name: /add contributor/i }
+    );
 
-    await this.page.getByPlaceholder('First Name').fill('Automation');
-    await this.page.getByPlaceholder('Last Name').fill('Contributor');
+    await expect(addContributorButton).toBeVisible();
+    await addContributorButton.click();
 
-    const emails = this.page.getByPlaceholder('Email Address');
-    await emails.nth(0).fill('sdet.contributor@example.com');
-    await emails.nth(1).fill('sdet.contributor@example.com');
+    const firstName = this.page.getByPlaceholder('First Name');
+    const lastName = this.page.getByPlaceholder('Last Name');
+
+    await expect(firstName).toBeVisible();
+
+    await firstName.fill('Automation');
+    await lastName.fill('Contributor');
+
+    const emailFields = this.page.getByPlaceholder('Email Address');
+    const contributorEmail = 'sdet.contributor@example.com';
+
+    await emailFields.nth(0).fill(contributorEmail);
+    await emailFields.nth(1).fill(contributorEmail);
 
     await this.page.locator('textarea:visible').last().fill(
-      'Please provide feedback and support for my scholarship application.'
+      'Please provide feedback and support for my scholarship application. Thank you.'
     );
 
     await this.page.getByRole('button', {
       name: /^add$/i
     }).click();
 
+    await expect(firstName).not.toBeVisible({
+      timeout: 10000
+    });
+
     await expect(
-      this.page.getByPlaceholder('First Name')
-    ).toBeHidden();
+      this.page.getByText('Automation', { exact: true })
+    ).toBeVisible();
+
+    console.log('Contributor successfully added.');
   }
 
+  // PAGE 2: EXTRACURRICULAR ACTIVITIES
   async provideFourActivities(activities: string[]) {
     console.log('Activity count:', activities.length);
 
+    await expect(
+      this.page.getByRole('button', {
+        name: 'Add Entry',
+        exact: true
+      })
+    ).toBeVisible();
+
+    // Open the activity entry form
     await this.page.getByRole('button', {
-      name: /next page/i
+      name: 'Add Entry',
+      exact: true
     }).click();
 
-    await this.page.waitForTimeout(2500);
+    await this.page.waitForTimeout(1000);
 
-    console.log('CURRENT URL:', this.page.url());
-    console.log('PAGE TEXT:', await this.page.locator('body').innerText());
-
+    console.log('PAGE AFTER ADD ENTRY:');
     console.log(
-      'VISIBLE FIELDS:',
-      await this.page.locator(
-        'input:visible, textarea:visible, select:visible, button:visible'
-      ).evaluateAll(elements =>
-        elements.map((element, index) => {
-          const el = element as HTMLInputElement;
-          return {
-            index,
-            tag: el.tagName,
-            type: el.type || '',
-            name: el.name || '',
-            placeholder: el.placeholder || '',
-            value: el.value || '',
-            text: el.innerText || '',
-            required: el.required,
-            disabled: el.disabled
-          };
-        })
-      )
+      await this.page.locator('body').innerText()
     );
 
-    await this.page.screenshot({
-      path: 'application-page-after-next.png',
-      fullPage: true
-    });
+    console.log('VISIBLE INPUT FIELDS:');
 
-    const html = await this.page.content();
-    console.log('APPLICATION HTML:', html);
+    const fields = await this.page.locator(
+      'input:visible, textarea:visible, select:visible'
+    ).evaluateAll(elements =>
+      elements.map((element, index) => {
+        const input = element as HTMLInputElement;
+
+        return {
+          index,
+          tag: element.tagName,
+          name: input.name || '',
+          placeholder: input.placeholder || '',
+          type: input.type || '',
+          value: input.value || ''
+        };
+      })
+    );
+
+    console.log(JSON.stringify(fields, null, 2));
+
+    console.log('VISIBLE BUTTONS:');
+    console.log(
+      await this.page.locator('button:visible').allTextContents()
+    );
+
+    // Diagnostic stop:
+    // We need to identify the actual activity form fields
+    // before entering the four activities.
   }
 
+  // PAGE 3: Academic Details
   async fillPage3AndUpload(data: ApplicantData) {
-    console.log('Academic page inspection required.');
-    throw new Error('Waiting for academic page fields to be identified.');
+    console.log('Academic page fields are not identified yet.');
+    console.log('Applicant data available:', data);
+    throw new Error(
+      'Academic page implementation is pending field inspection.'
+    );
   }
 
+  // PAGE 4: Essays
   async validateEssayTypeVisibility() {
-    console.log('Essay page inspection required.');
+    console.log('Essay page implementation is pending field inspection.');
+    throw new Error(
+      'Essay page implementation is pending field inspection.'
+    );
   }
 
   async selectAnimalsAndSchool(data: ApplicantData) {
-    console.log('Essay answers will be added after page inspection.');
+    console.log('Essay data available:', {
+      animalEssay: data.animalEssay,
+      schoolEssay: data.schoolEssay
+    });
+
+    throw new Error(
+      'Essay entry implementation is pending field inspection.'
+    );
   }
 
+  async completeEssays(data: ApplicantData) {
+    await fillByLabel(
+      this.page,
+      /animal|animals/i,
+      data.animalEssay
+    );
+
+    await fillByLabel(
+      this.page,
+      /school|education/i,
+      data.schoolEssay
+    );
+
+    await clickContinue(this.page);
+  }
+
+  // SUBMISSION
   async reviewAndSubmit(data: ApplicantData): Promise<string> {
-    throw new Error('Review page inspection required.');
+    console.log('Review and submission implementation is pending.');
+    console.log('Applicant:', data.email);
+
+    throw new Error(
+      'Review and submission implementation is pending field inspection.'
+    );
   }
 
-  async validateSubmittedApplicationCannotBeEdited(url: string) {
-    throw new Error('Submission verification is not implemented yet.');
+  async submitApplication() {
+    await this.page.getByRole('button', {
+      name: /submit/i
+    }).click();
+  }
+
+  async validateSubmittedApplicationCannotBeEdited(
+    reviewUrl: string
+  ) {
+    await this.page.goto(reviewUrl);
+
+    await expect(
+      this.page.getByText(/submitted|locked/i).first()
+    ).toBeVisible({ timeout: 20000 });
+  }
+
+  async verifyApplicationLocked() {
+    await expect(
+      this.page.getByText(/submitted|locked/i).first()
+    ).toBeVisible({ timeout: 20000 });
   }
 }
