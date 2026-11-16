@@ -140,7 +140,7 @@ export class ApplicationPage {
     console.log('Current URL:', this.page.url());
   }
 
-  // Add extracurricular activity
+  // Add one extracurricular activity
   async addActivity(
     name: string,
     years: string,
@@ -183,7 +183,7 @@ export class ApplicationPage {
     console.log(`Activity added: ${name}`);
   }
 
-  // Add two required activities
+  // Add two required extracurricular activities
   async addTwoActivities() {
     await this.addActivity(
       'Robotics Club',
@@ -234,7 +234,7 @@ export class ApplicationPage {
     console.log(await this.page.locator('body').innerText());
   }
 
-  // High School Information
+  // Complete High School Information page
   async fillHighSchoolPage(data: ApplicantData) {
     const street = this.page.getByPlaceholder(
       'Enter high school street address'
@@ -278,8 +278,7 @@ export class ApplicationPage {
 
     await zip.fill(data.postalCode);
 
-    // The site retained 3 instead of 3.8 in the previous run.
-    // Use a whole-number GPA accepted by the current input.
+    // Use the whole-number GPA retained by the application.
     const acceptedGpa = '3';
 
     await gpa.fill(acceptedGpa);
@@ -289,18 +288,31 @@ export class ApplicationPage {
 
     console.log('GPA entered:', await gpa.inputValue());
 
-    // Use a sample graduation date.
-    await graduationDate.fill(
-      `06/01/${data.graduationYear}`
+    // Mantine DateInput commonly displays dates in this format.
+    const graduationDateText = `June 1, ${data.graduationYear}`;
+
+    await graduationDate.fill(graduationDateText);
+
+    console.log(
+      'Graduation date immediately after filling:',
+      await graduationDate.inputValue()
+    );
+
+    await expect(graduationDate).toHaveValue(
+      graduationDateText,
+      { timeout: 5000 }
     );
 
     await graduationDate.press('Tab');
 
+    await expect(graduationDate).toHaveValue(
+      graduationDateText,
+      { timeout: 5000 }
+    );
+
     await expect(street).toHaveValue(data.address);
     await expect(city).toHaveValue(data.city);
     await expect(zip).toHaveValue(data.postalCode);
-
-    await expect(graduationDate).not.toHaveValue('');
 
     console.log(
       'High school address and academic details filled.'
