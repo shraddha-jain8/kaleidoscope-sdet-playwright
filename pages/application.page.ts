@@ -3,6 +3,42 @@ import { Page, expect } from '@playwright/test';
 import { fillByLabel } from './helpers';
 import type { ApplicantData } from '../utils/testData';
 
+function createTestTranscriptPdf(): Buffer {
+  const content =
+    'BT /F1 18 Tf 50 740 Td (SDET Scholarship - TEST DATA ONLY) Tj ' +
+    '0 -30 Td /F1 12 Tf (Sample transcript for automated testing only.) Tj ET';
+
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(content, 'ascii')} >>\nstream\n${content}\nendstream`
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [0];
+
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf, 'ascii'));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+
+  const xrefOffset = Buffer.byteLength(pdf, 'ascii');
+
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+
+  for (let index = 1; index < offsets.length; index++) {
+    pdf += `${String(offsets[index]).padStart(10, '0')} 00000 n \n`;
+  }
+
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
+  pdf += `startxref\n${xrefOffset}\n%%EOF`;
+
+  return Buffer.from(pdf, 'ascii');
+}
+
 export class ApplicationPage {
   constructor(private readonly page: Page) {}
 
@@ -178,15 +214,90 @@ export class ApplicationPage {
     console.log(await this.page.locator('body').innerText());
   }
 
-  // Inspect High School Information page
-  async inspectHighSchoolPage() {
+  // Complete High School Information page
+  async fillHighSchoolPage(data: ApplicantData) {
+    const streetAddress = this.page.getByPlaceholder(
+      'Enter high school street address'
+    );
+
+    const city = this.page.getByPlaceholder(
+      'Enter high school city'
+    );
+
+    const state = this.page.getByPlaceholder(
+      'Enter high school state'
+    );
+
+    const zip = this.page.getByPlaceholder('e.g. 55413');
+
+    const gpa = this.page.getByPlaceholder(
+      'Enter your current GPA'
+    );
+
+    const graduationDate = this.page.getByPlaceholder(
+      'Enter a date'
+    );
+
+    await expect(streetAddress).toBeVisible();
+
+    await streetAddress.fill(data.address);
+    await city.fill(data.city);
+
+    await state.fill(data.state);
+
+    const stateOption = this.page.getByRole('option', {
+      name: data.state,
+      exact: true
+    });
+
+    if (await stateOption.isVisible().catch(() => false)) {
+      await stateOption.click();
+    } else {
+      await state.press('Tab');
+    }
+
+    await zip.fill(data.postalCode);
+    await gpa.fill(data.gpa);
+
+    // The graduation field is a date field.
+    // June 1 is used as a sample date for the supplied graduation year.
+    await graduationDate.fill(`06/01/${data.graduationYear}`);
+    await graduationDate.press('Tab');
+
+    await expect(streetAddress).toHaveValue(data.address);
+    await expect(city).toHaveValue(data.city);
+    await expect(zip).toHaveValue(data.postalCode);
+    await expect(gpa).toHaveValue(data.gpa);
+    await expect(graduationDate).not.toHaveValue('');
+
+    console.log('High school address and academic details filled.');
+
+    // Upload a synthetic PDF for automation testing only.
+    const transcriptInput = this.page.locator(
+      'input[type="file"]'
+    );
+
+    await expect(transcriptInput).toHaveCount(1);
+
+    await transcriptInput.setInputFiles({
+      name: 'sample-transcript-test-only.pdf',
+      mimeType: 'application/pdf',
+      buffer: createTestTranscriptPdf()
+    });
+
+    console.log('Synthetic test transcript uploaded.');
+
+    console.log('HIGH SCHOOL PAGE AFTER FILLING:');
+    console.log(await this.page.locator('body').innerText());
+  }
+
+  // Inspect the next application page
+  async inspectCurrentPage() {
     const pageTitle = this.page.getByTestId('page-title');
 
-    await expect(pageTitle).toBeVisible();
-    await expect(pageTitle).toContainText(/High School Information/i);
+    await expect(pageTitle).toBeVisible({ timeout: 15000 });
 
-    console.log('HIGH SCHOOL PAGE TITLE:');
-    console.log(await pageTitle.innerText());
+    console.log('NEXT PAGE TITLE:', await pageTitle.innerText());
 
     const fields = await this.page.locator(
       'input:visible, textarea:visible, select:visible'
@@ -205,7 +316,7 @@ export class ApplicationPage {
       })
     );
 
-    console.log('HIGH SCHOOL FORM FIELDS:');
+    console.log('NEXT PAGE FORM FIELDS:');
     console.log(JSON.stringify(fields, null, 2));
 
     const fileInputs = await this.page.locator(
@@ -223,15 +334,10 @@ export class ApplicationPage {
       })
     );
 
-    console.log('TRANSCRIPT FILE INPUTS:');
+    console.log('NEXT PAGE FILE INPUTS:');
     console.log(JSON.stringify(fileInputs, null, 2));
 
-    console.log('HIGH SCHOOL BUTTONS:');
-    console.log(
-      await this.page.locator('button:visible').allTextContents()
-    );
-
-    console.log('HIGH SCHOOL PAGE CONTENT:');
+    console.log('NEXT PAGE CONTENT:');
     console.log(await this.page.locator('body').innerText());
   }
 }
