@@ -6,14 +6,14 @@ import { ApplicationPage } from '../pages/application.page';
 import { createApplicantData } from '../utils/testData';
 
 test.describe('Kaleidoscope applicant application', () => {
-  test('completes applicant details, activities and inspects high school date picker', async ({ page }) => {
+  test('completes applicant details and progresses through the scholarship application', async ({ page }) => {
     const data = createApplicantData();
 
     const landing = new LandingPage(page);
     const auth = new AuthPage(page);
     const application = new ApplicationPage(page);
 
-    await test.step('Open scholarship and sign in', async () => {
+    await test.step('Open scholarship and authenticate', async () => {
       await landing.open();
       await landing.startApplication();
       await auth.register(data);
@@ -35,7 +35,7 @@ test.describe('Kaleidoscope applicant application', () => {
       await application.goToActivitiesPage();
     });
 
-    await test.step('Add two extracurricular activities', async () => {
+    await test.step('Add extracurricular activities', async () => {
       await application.addTwoActivities();
     });
 
@@ -47,8 +47,24 @@ test.describe('Kaleidoscope applicant application', () => {
       ).toContainText(/High School Information/i);
     });
 
-    await test.step('Inspect High School date picker', async () => {
+    await test.step('Complete High School Information', async () => {
       await application.fillHighSchoolPage(data);
+    });
+
+    await test.step('Save High School Information', async () => {
+      const saveButton = page.getByRole('button', {
+        name: /^save$/i
+      });
+
+      await expect(saveButton).toBeVisible();
+      await saveButton.click();
+
+      console.log('Clicked Save on High School Information.');
+    });
+
+    await test.step('Navigate to the next application page', async () => {
+      await application.goToNextPage();
+      await application.inspectCurrentPage();
     });
   });
 });
