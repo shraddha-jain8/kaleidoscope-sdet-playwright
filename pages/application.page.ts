@@ -36,14 +36,11 @@ export class ApplicationPage {
     console.log('Applicant details filled.');
   }
 
-  // Page 1: Add the required contributor request
+  // Page 1: Add contributor request
   async addContributorRequest() {
-    const addContributorButton = this.page.getByRole('button', {
+    await this.page.getByRole('button', {
       name: /add contributor/i
-    });
-
-    await expect(addContributorButton).toBeVisible();
-    await addContributorButton.click();
+    }).click();
 
     const firstName = this.page.getByPlaceholder('First Name');
     const lastName = this.page.getByPlaceholder('Last Name');
@@ -76,8 +73,85 @@ export class ApplicationPage {
     console.log('Contributor request added.');
   }
 
-  // Navigate from applicant details to extracurricular activities
+  // Navigate to Extracurricular Activities
   async goToActivitiesPage() {
+    const previousUrl = this.page.url();
+
+    await this.page.getByRole('button', {
+      name: /next page/i
+    }).click();
+
+    await expect.poll(
+      () => this.page.url(),
+      { timeout: 30000 }
+    ).not.toBe(previousUrl);
+
+    const pageTitle = this.page.getByTestId('page-title');
+
+    await expect(pageTitle).toBeVisible();
+    await expect(pageTitle).toHaveText(/Extracurricular Activities/i);
+
+    console.log('Successfully navigated to Extracurricular Activities.');
+    console.log('Current URL:', this.page.url());
+  }
+
+  // Add one extracurricular activity
+  async addActivity(
+    name: string,
+    years: string,
+    leadership: string,
+    description: string
+  ) {
+    await this.page.getByRole('button', {
+      name: /add entry/i
+    }).click();
+
+    const activityName = this.page.getByPlaceholder('Short Input');
+    const yearsInvolved = this.page.getByPlaceholder('123');
+    const textAreas = this.page.locator('textarea:visible');
+
+    await expect(activityName).toBeVisible();
+
+    await activityName.fill(name);
+    await yearsInvolved.fill(years);
+
+    await textAreas.nth(0).fill(leadership);
+    await textAreas.nth(1).fill(description);
+
+    await this.page.getByRole('button', {
+      name: /^add$/i
+    }).click();
+
+    await expect(activityName).not.toBeVisible({ timeout: 10000 });
+
+    await expect(
+      this.page.getByText(name, { exact: true })
+    ).toBeVisible({ timeout: 10000 });
+
+    console.log(`Activity added: ${name}`);
+  }
+
+  // Add two required activities
+  async addTwoActivities() {
+    await this.addActivity(
+      'Robotics Club',
+      '2',
+      'Served as Team Leader and received recognition for project participation.',
+      'Participated in robotics projects, collaborated with team members, designed solutions, and helped prepare the team for school competitions.'
+    );
+
+    await this.addActivity(
+      'Community Tutoring',
+      '2',
+      'Volunteered as a student tutor and supported younger students.',
+      'Provided academic support to younger students, helped them understand lessons, and participated in community learning activities.'
+    );
+
+    console.log('Two extracurricular activities added.');
+  }
+
+  // Navigate to the next application page
+  async goToNextPage() {
     const previousUrl = this.page.url();
 
     const nextButton = this.page.getByRole('button', {
@@ -92,12 +166,16 @@ export class ApplicationPage {
       { timeout: 30000 }
     ).not.toBe(previousUrl);
 
+    console.log('Successfully navigated to the next application page.');
+    console.log('Next page URL:', this.page.url());
+
     const pageTitle = this.page.getByTestId('page-title');
 
-    await expect(pageTitle).toBeVisible({ timeout: 20000 });
-    await expect(pageTitle).toHaveText(/Extracurricular Activities/i);
+    if (await pageTitle.isVisible().catch(() => false)) {
+      console.log('NEXT PAGE TITLE:', await pageTitle.innerText());
+    }
 
-    console.log('Successfully navigated to Extracurricular Activities.');
-    console.log('Current URL:', this.page.url());
+    console.log('NEXT PAGE CONTENT:');
+    console.log(await this.page.locator('body').innerText());
   }
 }
