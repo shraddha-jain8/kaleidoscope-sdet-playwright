@@ -4,11 +4,11 @@ export function createApplicantData() {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const configuredEmail = process.env.TEST_EMAIL?.trim();
   return {
-    email: configuredEmail || `ronak.sdet+${id}@example.com`,
-    password: process.env.TEST_PASSWORD || 'Kaleidoscope!2026',
+    email: configuredEmail || `shraddha.sdet+${id}@example.com`,
+    password: process.env.TEST_PASSWORD || 'Kaleidoscope@2026',
     firstName: 'Shraddha',
     lastName: `SDET${id.slice(-6)}`,
-    phone: '2025550147',
+    phone: '4155550132',
     address: '100 Automation Avenue',
     city: 'Pune',
     state: 'Maharashtra',
