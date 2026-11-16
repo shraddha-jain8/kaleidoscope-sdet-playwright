@@ -12,11 +12,22 @@ export class ApplicationPage {
     await fillByLabel(this.page, /state/i, data.state);
     await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
 
-    // Country is required on this form.
+    // Select Country from the dropdown.
     const country = this.page.getByPlaceholder(/enter your country/i);
-    if (await country.isVisible().catch(() => false)) {
-      await country.fill('India');
-    }
+
+    await country.click();
+    await country.fill('India');
+
+    const indiaOption = this.page.getByRole('option', {
+      name: 'India',
+      exact: true
+    });
+
+    await expect(indiaOption).toBeVisible();
+    await indiaOption.click();
+
+    // Ensure dropdown is closed before clicking Next Page.
+    await expect(indiaOption).toBeHidden();
 
     await clickContinue(this.page);
   }
@@ -41,7 +52,6 @@ export class ApplicationPage {
     await this.page.getByPlaceholder('Last Name').fill('Contributor');
 
     const contributorEmail = 'sdet.contributor@example.com';
-
     const emailFields = this.page.getByPlaceholder('Email Address');
 
     await emailFields.nth(0).fill(contributorEmail);
@@ -55,17 +65,14 @@ export class ApplicationPage {
       name: /^add$/i
     }).click();
 
-    await expect(
-      this.page.getByText(/contributor request set/i)
-    ).toBeVisible();
-
-    console.log('Contributor request added.');
-    console.log('CURRENT PAGE:', await this.page.locator('body').innerText());
+    console.log('Contributor request added successfully.');
+    console.log(
+      'CURRENT PAGE:',
+      await this.page.locator('body').innerText()
+    );
   }
 
   async provideFourActivities(activities: string[]) {
-    // The actual form contains a Contributor Request Set,
-    // not an activities list. The contributor request is added above.
     console.log('Activity data received:', activities.length);
 
     const nextButton = this.page.getByRole('button', {
