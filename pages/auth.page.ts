@@ -1,42 +1,51 @@
 
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
 import type { ApplicantData } from '../utils/testData';
 
 export class AuthPage {
   constructor(private readonly page: Page) {}
 
   async register(data: ApplicantData) {
-    // Enter applicant email
+    // Open login page and enter email
     await this.page
       .getByPlaceholder(/email address/i)
       .fill(data.email);
 
-    // Continue to registration
+    console.log('EMAIL USED:', data.email);
+
+    // Click Next
     await this.page.getByRole('button').first().click();
 
-    // Wait for signup page
-    await expect(this.page).toHaveURL(/signup/);
+    // Wait for the application response
+    await this.page.waitForTimeout(3000);
 
-    // Fill registration details
-    await this.page.getByLabel('First Name').fill(data.firstName);
-    await this.page.getByLabel('Last Name').fill(data.lastName);
-    await this.page.getByPlaceholder(/702/).fill(data.phone);
-    await this.page.getByLabel('Create a Password').fill(data.password);
+    // Print diagnostic details
+    console.log('URL AFTER NEXT:', this.page.url());
 
-    // Accept mandatory age confirmation
-    await this.page
-      .getByLabel(/I confirm that I am at least 13 years old/i)
-      .check();
+    console.log(
+      'PAGE TEXT AFTER NEXT:',
+      await this.page.locator('body').innerText()
+    );
 
-    // Submit registration
-    await this.page.getByRole('button', { name: /submit/i }).click();
+    console.log(
+      'INPUT DETAILS:',
+      await this.page.locator('input').evaluateAll(elements =>
+        elements.map(el => ({
+          type: el.getAttribute('type'),
+          placeholder: el.getAttribute('placeholder'),
+          ariaLabel: el.getAttribute('aria-label'),
+          value: el.getAttribute('type') === 'password'
+            ? '[hidden]'
+            : (el as HTMLInputElement).value
+        }))
+      )
+    );
 
-    // Wait for the authenticated application dashboard
-    await expect(
-      this.page.getByText('Applications', { exact: true }).first()
-    ).toBeVisible({ timeout: 20000 });
+    console.log(
+      'BUTTON DETAILS:',
+      await this.page.locator('button').allTextContents()
+    );
 
-    console.log('Registration completed successfully.');
-    console.log('Current URL:', this.page.url());
+    throw new Error('Login diagnostic checkpoint.');
   }
 }
