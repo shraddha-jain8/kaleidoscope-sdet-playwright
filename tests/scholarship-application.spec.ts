@@ -6,7 +6,7 @@ import { ApplicationPage } from '../pages/application.page';
 import { createApplicantData } from '../utils/testData';
 
 test.describe('Kaleidoscope applicant application', () => {
-  test('signs in, completes applicant details, adds contributor and activities', async ({ page }) => {
+  test('signs in, completes applicant details, adds contributor and activities, and inspects high school page', async ({ page }) => {
     const data = createApplicantData();
 
     const landing = new LandingPage(page);
@@ -39,8 +39,12 @@ test.describe('Kaleidoscope applicant application', () => {
       await application.addTwoActivities();
     });
 
-    await test.step('Navigate to the next application page', async () => {
+    await test.step('Navigate to High School Information', async () => {
       await application.goToNextPage();
+    });
+
+    await test.step('Inspect High School Information form', async () => {
+      await application.inspectHighSchoolPage();
     });
   });
 });
