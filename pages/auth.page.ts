@@ -10,6 +10,26 @@ export class AuthPage {
       this.page.getByRole('button', { name: /register|sign up|create account/i })
     ]);
     await register.click();
+    
+await this.page.waitForLoadState('domcontentloaded');
+
+console.log('CURRENT URL:', this.page.url());
+
+console.log(
+  'PAGE TEXT:',
+  await this.page.locator('body').innerText()
+);
+
+console.log(
+  'LINKS:',
+  await this.page.locator('a').allTextContents()
+);
+
+console.log(
+  'BUTTONS:',
+  await this.page.locator('button').allTextContents()
+);
+
     await fillByLabel(this.page, /first name/i, data.firstName);
     await fillByLabel(this.page, /last name/i, data.lastName);
     await fillByLabel(this.page, /email/i, data.email);
