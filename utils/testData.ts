@@ -6,7 +6,7 @@ export function createApplicantData() {
   return {
     email: configuredEmail || `ronak.sdet+${id}@example.com`,
     password: process.env.TEST_PASSWORD || 'Kaleidoscope!2026',
-    firstName: 'Ronak',
+    firstName: 'Shraddha',
     lastName: `SDET${id.slice(-6)}`,
     phone: '2025550147',
     address: '100 Automation Avenue',
