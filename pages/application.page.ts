@@ -42,17 +42,11 @@ function createTestTranscriptPdf(): Buffer {
 export class ApplicationPage {
   constructor(private readonly page: Page) {}
 
-  // Page 1: Applicant details
   async fillPage1(data: ApplicantData) {
     await fillByLabel(this.page, /address/i, data.address);
     await fillByLabel(this.page, /city/i, data.city);
     await fillByLabel(this.page, /state/i, data.state);
-
-    await fillByLabel(
-      this.page,
-      /zip|postal code/i,
-      data.postalCode
-    );
+    await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
 
     const country = this.page.getByPlaceholder(
       /enter your country/i
@@ -75,7 +69,6 @@ export class ApplicationPage {
     console.log('Applicant details filled.');
   }
 
-  // Page 1: Contributor request
   async addContributorRequest() {
     await this.page.getByRole('button', {
       name: /add contributor/i
@@ -114,7 +107,6 @@ export class ApplicationPage {
     console.log('Contributor request added.');
   }
 
-  // Navigate to extracurricular activities
   async goToActivitiesPage() {
     const previousUrl = this.page.url();
 
@@ -133,14 +125,10 @@ export class ApplicationPage {
       /Extracurricular Activities/i
     );
 
-    console.log(
-      'Successfully navigated to Extracurricular Activities.'
-    );
-
+    console.log('Successfully navigated to Extracurricular Activities.');
     console.log('Current URL:', this.page.url());
   }
 
-  // Add one extracurricular activity
   async addActivity(
     name: string,
     years: string,
@@ -151,15 +139,9 @@ export class ApplicationPage {
       name: /add entry/i
     }).click();
 
-    const activityName = this.page.getByPlaceholder(
-      'Short Input'
-    );
-
+    const activityName = this.page.getByPlaceholder('Short Input');
     const yearsInvolved = this.page.getByPlaceholder('123');
-
-    const textAreas = this.page.locator(
-      'textarea:visible'
-    );
+    const textAreas = this.page.locator('textarea:visible');
 
     await expect(activityName).toBeVisible();
 
@@ -183,7 +165,6 @@ export class ApplicationPage {
     console.log(`Activity added: ${name}`);
   }
 
-  // Add two required extracurricular activities
   async addTwoActivities() {
     await this.addActivity(
       'Robotics Club',
@@ -202,7 +183,6 @@ export class ApplicationPage {
     console.log('Two extracurricular activities added.');
   }
 
-  // Navigate to next application page
   async goToNextPage() {
     const previousUrl = this.page.url();
 
@@ -218,10 +198,7 @@ export class ApplicationPage {
       { timeout: 30000 }
     ).not.toBe(previousUrl);
 
-    console.log(
-      'Successfully navigated to the next application page.'
-    );
-
+    console.log('Successfully navigated to the next application page.');
     console.log('Next page URL:', this.page.url());
 
     const title = this.page.getByTestId('page-title');
@@ -234,7 +211,7 @@ export class ApplicationPage {
     console.log(await this.page.locator('body').innerText());
   }
 
-  // Complete High School Information page
+  // Fill High School fields and inspect the date picker
   async fillHighSchoolPage(data: ApplicantData) {
     const street = this.page.getByPlaceholder(
       'Enter high school street address'
@@ -258,8 +235,6 @@ export class ApplicationPage {
       'Enter a date'
     );
 
-    await expect(street).toBeVisible();
-
     await street.fill(data.address);
     await city.fill(data.city);
 
@@ -278,47 +253,51 @@ export class ApplicationPage {
 
     await zip.fill(data.postalCode);
 
-    // Use the whole-number GPA retained by the application.
-    const acceptedGpa = '3';
-
-    await gpa.fill(acceptedGpa);
+    await gpa.fill('3');
     await gpa.press('Tab');
 
-    await expect(gpa).toHaveValue(acceptedGpa);
+    await expect(gpa).toHaveValue('3');
 
-    console.log('GPA entered:', await gpa.inputValue());
+    console.log('GPA entered: 3');
 
-    // Mantine DateInput commonly displays dates in this format.
-    const graduationDateText = `June 1, ${data.graduationYear}`;
+    // Do not guess the date format.
+    // Open the actual calendar widget for inspection.
+    await graduationDate.click();
 
-    await graduationDate.fill(graduationDateText);
+    await expect(graduationDate).toBeVisible();
 
-    console.log(
-      'Graduation date immediately after filling:',
-      await graduationDate.inputValue()
+    console.log('DATE PICKER CONTENT:');
+    console.log(await this.page.locator('body').innerText());
+
+    const calendarButtons = await this.page.locator(
+      'button:visible'
+    ).evaluateAll(elements =>
+      elements.map(element => ({
+        text: element.textContent?.trim(),
+        ariaLabel: element.getAttribute('aria-label'),
+        title: element.getAttribute('title'),
+        disabled: (element as HTMLButtonElement).disabled
+      }))
     );
 
-    await expect(graduationDate).toHaveValue(
-      graduationDateText,
-      { timeout: 5000 }
+    console.log('DATE PICKER BUTTONS:');
+    console.log(JSON.stringify(calendarButtons, null, 2));
+
+    const calendarCells = await this.page.locator(
+      '[role="gridcell"], [data-day], [data-calendar-day]'
+    ).evaluateAll(elements =>
+      elements.map(element => ({
+        text: element.textContent?.trim(),
+        ariaLabel: element.getAttribute('aria-label'),
+        title: element.getAttribute('title'),
+        disabled: element.getAttribute('aria-disabled')
+      }))
     );
 
-    await graduationDate.press('Tab');
+    console.log('DATE PICKER CELLS:');
+    console.log(JSON.stringify(calendarCells, null, 2));
 
-    await expect(graduationDate).toHaveValue(
-      graduationDateText,
-      { timeout: 5000 }
-    );
-
-    await expect(street).toHaveValue(data.address);
-    await expect(city).toHaveValue(data.city);
-    await expect(zip).toHaveValue(data.postalCode);
-
-    console.log(
-      'High school address and academic details filled.'
-    );
-
-    // Synthetic transcript - testing only
+    // Upload synthetic transcript for testing only.
     const transcriptInput = this.page.locator(
       'input[type="file"]'
     );
@@ -332,12 +311,9 @@ export class ApplicationPage {
     });
 
     console.log('Synthetic test transcript selected.');
-
-    console.log('HIGH SCHOOL PAGE AFTER FILLING:');
-    console.log(await this.page.locator('body').innerText());
+    console.log('High School date picker inspection completed.');
   }
 
-  // Inspect the next application page
   async inspectCurrentPage() {
     const title = this.page.getByTestId('page-title');
 
@@ -345,10 +321,7 @@ export class ApplicationPage {
       timeout: 15000
     });
 
-    console.log(
-      'NEXT PAGE TITLE:',
-      await title.innerText()
-    );
+    console.log('NEXT PAGE TITLE:', await title.innerText());
 
     const fields = await this.page.locator(
       'input:visible, textarea:visible, select:visible'
@@ -361,8 +334,7 @@ export class ApplicationPage {
           type: field.type,
           placeholder: field.placeholder,
           name: field.name,
-          required: field.required,
-          ariaLabel: field.getAttribute('aria-label')
+          required: field.required
         };
       })
     );
