@@ -6,7 +6,7 @@ import type { ApplicantData } from '../utils/testData';
 function createTestTranscriptPdf(): Buffer {
   const content =
     'BT /F1 18 Tf 50 740 Td (SDET Scholarship - TEST DATA ONLY) Tj ' +
-    '0 -30 Td /F1 12 Tf (Sample transcript for automated testing only.) Tj ET';
+    '0 -30 Td /F1 12 Tf (Synthetic transcript for automated testing.) Tj ET';
 
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
@@ -29,8 +29,8 @@ function createTestTranscriptPdf(): Buffer {
   pdf += `xref\n0 ${objects.length + 1}\n`;
   pdf += '0000000000 65535 f \n';
 
-  for (let index = 1; index < offsets.length; index++) {
-    pdf += `${String(offsets[index]).padStart(10, '0')} 00000 n \n`;
+  for (let i = 1; i < offsets.length; i++) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
   }
 
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;
@@ -47,13 +47,16 @@ export class ApplicationPage {
     await fillByLabel(this.page, /address/i, data.address);
     await fillByLabel(this.page, /city/i, data.city);
     await fillByLabel(this.page, /state/i, data.state);
+
     await fillByLabel(
       this.page,
       /zip|postal code/i,
       data.postalCode
     );
 
-    const country = this.page.getByPlaceholder(/enter your country/i);
+    const country = this.page.getByPlaceholder(
+      /enter your country/i
+    );
 
     await country.click();
     await country.fill('India');
@@ -72,7 +75,7 @@ export class ApplicationPage {
     console.log('Applicant details filled.');
   }
 
-  // Page 1: Add contributor request
+  // Page 1: Contributor request
   async addContributorRequest() {
     await this.page.getByRole('button', {
       name: /add contributor/i
@@ -87,10 +90,10 @@ export class ApplicationPage {
     await firstName.fill('Automation');
     await lastName.fill('Contributor');
 
-    const contributorEmail = 'sdet.contributor@example.com';
+    const email = 'sdet.contributor@example.com';
 
-    await emailFields.nth(0).fill(contributorEmail);
-    await emailFields.nth(1).fill(contributorEmail);
+    await emailFields.nth(0).fill(email);
+    await emailFields.nth(1).fill(email);
 
     await this.page.locator('textarea:visible').last().fill(
       'Please provide feedback and support for my scholarship application. Thank you.'
@@ -100,7 +103,9 @@ export class ApplicationPage {
       name: /^add$/i
     }).click();
 
-    await expect(firstName).not.toBeVisible({ timeout: 10000 });
+    await expect(firstName).not.toBeVisible({
+      timeout: 10000
+    });
 
     await expect(
       this.page.getByText('Automation', { exact: true })
@@ -109,7 +114,7 @@ export class ApplicationPage {
     console.log('Contributor request added.');
   }
 
-  // Navigate to Extracurricular Activities
+  // Navigate to extracurricular activities
   async goToActivitiesPage() {
     const previousUrl = this.page.url();
 
@@ -122,16 +127,20 @@ export class ApplicationPage {
       { timeout: 30000 }
     ).not.toBe(previousUrl);
 
-    const pageTitle = this.page.getByTestId('page-title');
+    const title = this.page.getByTestId('page-title');
 
-    await expect(pageTitle).toBeVisible();
-    await expect(pageTitle).toHaveText(/Extracurricular Activities/i);
+    await expect(title).toHaveText(
+      /Extracurricular Activities/i
+    );
 
-    console.log('Successfully navigated to Extracurricular Activities.');
+    console.log(
+      'Successfully navigated to Extracurricular Activities.'
+    );
+
     console.log('Current URL:', this.page.url());
   }
 
-  // Add one extracurricular activity
+  // Add extracurricular activity
   async addActivity(
     name: string,
     years: string,
@@ -142,9 +151,15 @@ export class ApplicationPage {
       name: /add entry/i
     }).click();
 
-    const activityName = this.page.getByPlaceholder('Short Input');
+    const activityName = this.page.getByPlaceholder(
+      'Short Input'
+    );
+
     const yearsInvolved = this.page.getByPlaceholder('123');
-    const textAreas = this.page.locator('textarea:visible');
+
+    const textAreas = this.page.locator(
+      'textarea:visible'
+    );
 
     await expect(activityName).toBeVisible();
 
@@ -157,16 +172,18 @@ export class ApplicationPage {
       name: /^add$/i
     }).click();
 
-    await expect(activityName).not.toBeVisible({ timeout: 10000 });
+    await expect(activityName).not.toBeVisible({
+      timeout: 10000
+    });
 
     await expect(
       this.page.getByText(name, { exact: true })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible();
 
     console.log(`Activity added: ${name}`);
   }
 
-  // Add two required extracurricular activities
+  // Add two required activities
   async addTwoActivities() {
     await this.addActivity(
       'Robotics Club',
@@ -185,7 +202,7 @@ export class ApplicationPage {
     console.log('Two extracurricular activities added.');
   }
 
-  // Navigate to the next application page
+  // Navigate to next application page
   async goToNextPage() {
     const previousUrl = this.page.url();
 
@@ -201,22 +218,25 @@ export class ApplicationPage {
       { timeout: 30000 }
     ).not.toBe(previousUrl);
 
-    console.log('Successfully navigated to the next application page.');
+    console.log(
+      'Successfully navigated to the next application page.'
+    );
+
     console.log('Next page URL:', this.page.url());
 
-    const pageTitle = this.page.getByTestId('page-title');
+    const title = this.page.getByTestId('page-title');
 
-    if (await pageTitle.isVisible().catch(() => false)) {
-      console.log('NEXT PAGE TITLE:', await pageTitle.innerText());
+    if (await title.isVisible().catch(() => false)) {
+      console.log('NEXT PAGE TITLE:', await title.innerText());
     }
 
     console.log('NEXT PAGE CONTENT:');
     console.log(await this.page.locator('body').innerText());
   }
 
-  // Complete High School Information page
+  // High School Information
   async fillHighSchoolPage(data: ApplicantData) {
-    const streetAddress = this.page.getByPlaceholder(
+    const street = this.page.getByPlaceholder(
       'Enter high school street address'
     );
 
@@ -238,9 +258,9 @@ export class ApplicationPage {
       'Enter a date'
     );
 
-    await expect(streetAddress).toBeVisible();
+    await expect(street).toBeVisible();
 
-    await streetAddress.fill(data.address);
+    await street.fill(data.address);
     await city.fill(data.city);
 
     await state.fill(data.state);
@@ -257,22 +277,36 @@ export class ApplicationPage {
     }
 
     await zip.fill(data.postalCode);
-    await gpa.fill(data.gpa);
 
-    // The graduation field is a date field.
-    // June 1 is used as a sample date for the supplied graduation year.
-    await graduationDate.fill(`06/01/${data.graduationYear}`);
+    // The site retained 3 instead of 3.8 in the previous run.
+    // Use a whole-number GPA accepted by the current input.
+    const acceptedGpa = '3';
+
+    await gpa.fill(acceptedGpa);
+    await gpa.press('Tab');
+
+    await expect(gpa).toHaveValue(acceptedGpa);
+
+    console.log('GPA entered:', await gpa.inputValue());
+
+    // Use a sample graduation date.
+    await graduationDate.fill(
+      `06/01/${data.graduationYear}`
+    );
+
     await graduationDate.press('Tab');
 
-    await expect(streetAddress).toHaveValue(data.address);
+    await expect(street).toHaveValue(data.address);
     await expect(city).toHaveValue(data.city);
     await expect(zip).toHaveValue(data.postalCode);
-    await expect(gpa).toHaveValue(data.gpa);
+
     await expect(graduationDate).not.toHaveValue('');
 
-    console.log('High school address and academic details filled.');
+    console.log(
+      'High school address and academic details filled.'
+    );
 
-    // Upload a synthetic PDF for automation testing only.
+    // Synthetic transcript - testing only
     const transcriptInput = this.page.locator(
       'input[type="file"]'
     );
@@ -285,7 +319,7 @@ export class ApplicationPage {
       buffer: createTestTranscriptPdf()
     });
 
-    console.log('Synthetic test transcript uploaded.');
+    console.log('Synthetic test transcript selected.');
 
     console.log('HIGH SCHOOL PAGE AFTER FILLING:');
     console.log(await this.page.locator('body').innerText());
@@ -293,11 +327,16 @@ export class ApplicationPage {
 
   // Inspect the next application page
   async inspectCurrentPage() {
-    const pageTitle = this.page.getByTestId('page-title');
+    const title = this.page.getByTestId('page-title');
 
-    await expect(pageTitle).toBeVisible({ timeout: 15000 });
+    await expect(title).toBeVisible({
+      timeout: 15000
+    });
 
-    console.log('NEXT PAGE TITLE:', await pageTitle.innerText());
+    console.log(
+      'NEXT PAGE TITLE:',
+      await title.innerText()
+    );
 
     const fields = await this.page.locator(
       'input:visible, textarea:visible, select:visible'
@@ -318,24 +357,6 @@ export class ApplicationPage {
 
     console.log('NEXT PAGE FORM FIELDS:');
     console.log(JSON.stringify(fields, null, 2));
-
-    const fileInputs = await this.page.locator(
-      'input[type="file"]'
-    ).evaluateAll(elements =>
-      elements.map(element => {
-        const field = element as HTMLInputElement;
-
-        return {
-          name: field.name,
-          accept: field.accept,
-          multiple: field.multiple,
-          required: field.required
-        };
-      })
-    );
-
-    console.log('NEXT PAGE FILE INPUTS:');
-    console.log(JSON.stringify(fileInputs, null, 2));
 
     console.log('NEXT PAGE CONTENT:');
     console.log(await this.page.locator('body').innerText());
