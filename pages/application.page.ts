@@ -264,42 +264,54 @@ export class ApplicationPage {
 
     await expect(graduationDate).toBeVisible();
 
-    // The latest test log showed November 2026.
-    // The calendar header contains previous/next month controls.
-    const calendarHeaderControls = this.page.locator(
-      '.mantine-CalendarHeader-control'
+    console.log('DATE PICKER CONTENT:');
+    console.log(await this.page.locator('body').innerText());
+
+    // Inspect visible calendar buttons and their actual HTML.
+    const calendarButtons = await this.page.locator(
+      'button:visible'
+    ).evaluateAll(elements =>
+      elements.map(element => {
+        const button = element as HTMLButtonElement;
+
+        return {
+          text: button.textContent?.trim(),
+          ariaLabel: button.getAttribute('aria-label'),
+          title: button.getAttribute('title'),
+          className: button.className,
+          disabled: button.disabled,
+          outerHTML: button.outerHTML,
+          parentHTML: button.parentElement?.outerHTML
+        };
+      })
     );
 
-    await expect(calendarHeaderControls).toHaveCount(2);
-
-    const nextMonthButton = calendarHeaderControls.last();
-
-    // Move from November 2026 to June 2027.
-    for (let month = 0; month < 7; month++) {
-      await nextMonthButton.click();
-    }
-
-    // Confirm the calendar reached the intended month.
-    await expect(
-      this.page.getByText('June 2027', { exact: true })
-    ).toBeVisible();
-
-    // Select the first day of June 2027.
-    const graduationDay = this.page.getByRole('button', {
-      name: '1 June 2027',
-      exact: true
-    });
-
-    await expect(graduationDay).toBeVisible();
-    await graduationDay.click();
-
-    // Confirm the date field is populated.
-    await expect(graduationDate).toHaveValue(/.+/);
-
+    console.log('DATE PICKER BUTTON HTML:');
     console.log(
-      'Graduation date selected:',
-      await graduationDate.inputValue()
+      JSON.stringify(
+        calendarButtons.filter(button => !button.text),
+        null,
+        2
+      )
     );
+
+    console.log('DATE PICKER ALL BUTTONS:');
+    console.log(JSON.stringify(calendarButtons, null, 2));
+
+    // Inspect calendar-related elements and their classes.
+    const calendarElements = await this.page.locator(
+      '[class*="Calendar"], [class*="calendar"], [class*="DatePicker"], [class*="datepicker"]'
+    ).evaluateAll(elements =>
+      elements.map(element => ({
+        tag: element.tagName,
+        className: element.getAttribute('class'),
+        text: element.textContent?.trim().slice(0, 150),
+        outerHTML: element.outerHTML.slice(0, 1500)
+      }))
+    );
+
+    console.log('CALENDAR ELEMENT DETAILS:');
+    console.log(JSON.stringify(calendarElements, null, 2));
 
     // Upload synthetic transcript for automated testing only.
     const transcriptInput = this.page.locator(
@@ -315,7 +327,7 @@ export class ApplicationPage {
     });
 
     console.log('Synthetic test transcript selected.');
-    console.log('High School Information fields completed.');
+    console.log('High School date picker inspection completed.');
   }
 
   async inspectCurrentPage() {
