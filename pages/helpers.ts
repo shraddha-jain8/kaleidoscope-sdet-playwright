@@ -23,19 +23,50 @@ export async function firstVisible(
   );
 }
 
+
 export async function fillByLabel(
   page: Page,
   label: RegExp,
   value: string
 ) {
-  const control = await firstVisible([
+  const candidates = [
     page.getByLabel(label),
     page.getByPlaceholder(label),
     page.getByRole('textbox', { name: label })
-  ]);
+  ];
 
-  await control.fill(value);
+  for (const locator of candidates) {
+    try {
+      await locator.first().waitFor({
+        state: 'visible',
+        timeout: 2000
+      });
+
+      await locator.first().fill(value);
+      return;
+    } catch {
+      // Try next locator
+    }
+  }
+
+  const fields = await page.locator('input, textarea').evaluateAll(
+    elements => elements.map(element => ({
+      type: element.getAttribute('type'),
+      name: element.getAttribute('name'),
+      placeholder: element.getAttribute('placeholder'),
+      ariaLabel: element.getAttribute('aria-label'),
+      id: element.id
+    }))
+  );
+
+  throw new Error(
+    `Could not locate field ${label}.\n` +
+    `Current URL: ${page.url()}\n` +
+    `Page title: ${await page.title()}\n` +
+    `Available fields: ${JSON.stringify(fields, null, 2)}`
+  );
 }
+
 
 export async function clickContinue(page: Page) {
   const button = await firstVisible([
