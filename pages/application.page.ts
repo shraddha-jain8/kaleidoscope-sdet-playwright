@@ -114,7 +114,6 @@ export class ApplicationPage {
 
     await activityName.fill(name);
     await yearsInvolved.fill(years);
-
     await textAreas.nth(0).fill(leadership);
     await textAreas.nth(1).fill(description);
 
@@ -131,7 +130,7 @@ export class ApplicationPage {
     console.log(`Activity added: ${name}`);
   }
 
-  // Add two required activities
+  // Add two required extracurricular activities
   async addTwoActivities() {
     await this.addActivity(
       'Robotics Club',
@@ -176,6 +175,63 @@ export class ApplicationPage {
     }
 
     console.log('NEXT PAGE CONTENT:');
+    console.log(await this.page.locator('body').innerText());
+  }
+
+  // Inspect High School Information page
+  async inspectHighSchoolPage() {
+    const pageTitle = this.page.getByTestId('page-title');
+
+    await expect(pageTitle).toBeVisible();
+    await expect(pageTitle).toContainText(/High School Information/i);
+
+    console.log('HIGH SCHOOL PAGE TITLE:');
+    console.log(await pageTitle.innerText());
+
+    const fields = await this.page.locator(
+      'input:visible, textarea:visible, select:visible'
+    ).evaluateAll(elements =>
+      elements.map(element => {
+        const field = element as HTMLInputElement;
+
+        return {
+          tag: field.tagName,
+          type: field.type,
+          placeholder: field.placeholder,
+          name: field.name,
+          required: field.required,
+          ariaLabel: field.getAttribute('aria-label')
+        };
+      })
+    );
+
+    console.log('HIGH SCHOOL FORM FIELDS:');
+    console.log(JSON.stringify(fields, null, 2));
+
+    const fileInputs = await this.page.locator(
+      'input[type="file"]'
+    ).evaluateAll(elements =>
+      elements.map(element => {
+        const field = element as HTMLInputElement;
+
+        return {
+          name: field.name,
+          accept: field.accept,
+          multiple: field.multiple,
+          required: field.required
+        };
+      })
+    );
+
+    console.log('TRANSCRIPT FILE INPUTS:');
+    console.log(JSON.stringify(fileInputs, null, 2));
+
+    console.log('HIGH SCHOOL BUTTONS:');
+    console.log(
+      await this.page.locator('button:visible').allTextContents()
+    );
+
+    console.log('HIGH SCHOOL PAGE CONTENT:');
     console.log(await this.page.locator('body').innerText());
   }
 }
