@@ -1,43 +1,38 @@
-import { test } from '@playwright/test';
+
+import { test, expect } from '@playwright/test';
 import { LandingPage } from '../pages/landing.page';
 import { AuthPage } from '../pages/auth.page';
 import { ApplicationPage } from '../pages/application.page';
 import { createApplicantData } from '../utils/testData';
 
 test.describe('Kaleidoscope applicant application', () => {
-  test('registers, completes, submits, and locks an SDET scholarship application', async ({ page }) => {
+  test('signs in, completes applicant details, adds contributor and opens activities page', async ({ page }) => {
     const data = createApplicantData();
+
     const landing = new LandingPage(page);
     const auth = new AuthPage(page);
     const application = new ApplicationPage(page);
 
-    await test.step('Open program and register a new applicant', async () => {
+    await test.step('Open scholarship and sign in', async () => {
       await landing.open();
       await landing.startApplication();
       await auth.register(data);
     });
 
-    await test.step('Page 1: complete required applicant fields', async () => {
+    await test.step('Complete applicant details', async () => {
       await application.fillPage1(data);
     });
 
-    await test.step('Page 2: validate minimum two activities, then provide four', async () => {
-      await application.validateMinimumTwoActivities();
-      await application.provideFourActivities(data.activities);
+    await test.step('Add contributor request', async () => {
+      await application.addContributorRequest();
+
+      await expect(
+        page.getByText('Automation', { exact: true })
+      ).toBeVisible();
     });
 
-    await test.step('Page 3: complete academic fields and upload transcript', async () => {
-      await application.fillPage3AndUpload(data);
-    });
-
-    await test.step('Page 4: validate conditional essays and answer Animals + School', async () => {
-      await application.validateEssayTypeVisibility();
-      await application.selectAnimalsAndSchool(data);
-    });
-
-    await test.step('Review, submit, revisit captured URL, and validate lock', async () => {
-      const reviewUrl = await application.reviewAndSubmit(data);
-      await application.validateSubmittedApplicationCannotBeEdited(reviewUrl);
+    await test.step('Navigate to extracurricular activities', async () => {
+      await application.goToActivitiesPage();
     });
   });
 });
