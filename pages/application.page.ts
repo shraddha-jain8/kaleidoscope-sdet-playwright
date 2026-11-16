@@ -12,7 +12,7 @@ export class ApplicationPage {
     await fillByLabel(this.page, /state/i, data.state);
     await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
 
-    // Select Country from the dropdown.
+    // Select Country.
     const country = this.page.getByPlaceholder(/enter your country/i);
 
     await country.click();
@@ -26,8 +26,10 @@ export class ApplicationPage {
     await expect(indiaOption).toBeVisible();
     await indiaOption.click();
 
-    // Ensure dropdown is closed before clicking Next Page.
-    await expect(indiaOption).toBeHidden();
+    // Close the dropdown and move to the next field.
+    await country.press('Tab');
+
+    await expect(country).toHaveValue('India');
 
     await clickContinue(this.page);
   }
@@ -44,12 +46,13 @@ export class ApplicationPage {
     await expect(addContributorButton).toBeVisible();
     await addContributorButton.click();
 
-    await expect(
-      this.page.getByPlaceholder('First Name')
-    ).toBeVisible();
+    const firstName = this.page.getByPlaceholder('First Name');
+    const lastName = this.page.getByPlaceholder('Last Name');
 
-    await this.page.getByPlaceholder('First Name').fill('Automation');
-    await this.page.getByPlaceholder('Last Name').fill('Contributor');
+    await expect(firstName).toBeVisible();
+
+    await firstName.fill('Automation');
+    await lastName.fill('Contributor');
 
     const contributorEmail = 'sdet.contributor@example.com';
     const emailFields = this.page.getByPlaceholder('Email Address');
@@ -65,11 +68,29 @@ export class ApplicationPage {
       name: /^add$/i
     }).click();
 
-    console.log('Contributor request added successfully.');
+    await this.page.waitForTimeout(1000);
+
+    const contributorFormStillVisible = await firstName
+      .isVisible()
+      .catch(() => false);
+
     console.log(
-      'CURRENT PAGE:',
+      'Contributor form still visible:',
+      contributorFormStillVisible
+    );
+
+    console.log(
+      'PAGE AFTER ADD:',
       await this.page.locator('body').innerText()
     );
+
+    if (contributorFormStillVisible) {
+      throw new Error(
+        'Contributor form did not close after clicking Add. Check required fields and validation.'
+      );
+    }
+
+    console.log('Contributor form closed after Add.');
   }
 
   async provideFourActivities(activities: string[]) {
@@ -80,18 +101,21 @@ export class ApplicationPage {
     });
 
     await expect(nextButton).toBeVisible();
+
     await nextButton.click();
 
-    await this.page.waitForTimeout(1500);
+    // Wait for the application to respond.
+    await this.page.waitForTimeout(2000);
 
-    console.log('NEXT APPLICATION PAGE URL:', this.page.url());
+    console.log('APPLICATION URL:', this.page.url());
+
     console.log(
-      'NEXT APPLICATION PAGE TEXT:',
+      'APPLICATION PAGE TEXT:',
       await this.page.locator('body').innerText()
     );
 
     console.log(
-      'NEXT PAGE FORM FIELDS:',
+      'APPLICATION FORM FIELDS:',
       await this.page
         .locator('input:visible, textarea:visible, select:visible')
         .evaluateAll(elements =>
@@ -113,12 +137,8 @@ export class ApplicationPage {
     );
 
     console.log(
-      'NEXT PAGE BUTTONS:',
+      'APPLICATION BUTTONS:',
       await this.page.locator('button:visible').allTextContents()
-    );
-
-    throw new Error(
-      'Diagnostic checkpoint: inspect the next application page.'
     );
   }
 
