@@ -1,51 +1,59 @@
 
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import type { ApplicantData } from '../utils/testData';
 
 export class AuthPage {
   constructor(private readonly page: Page) {}
 
   async register(data: ApplicantData) {
-    // Open login page and enter email
+    // Enter email
     await this.page
       .getByPlaceholder(/email address/i)
       .fill(data.email);
 
-    console.log('EMAIL USED:', data.email);
-
     // Click Next
     await this.page.getByRole('button').first().click();
 
-    // Wait for the application response
-    await this.page.waitForTimeout(3000);
+    // Wait for either signup or existing-account password screen
+    const signupPassword = this.page.getByLabel('Create a Password');
+    const loginPassword = this.page.getByLabel('Enter Your Password');
 
-    // Print diagnostic details
-    console.log('URL AFTER NEXT:', this.page.url());
+    await expect(
+      signupPassword.or(loginPassword)
+    ).toBeVisible({ timeout: 20000 });
 
-    console.log(
-      'PAGE TEXT AFTER NEXT:',
-      await this.page.locator('body').innerText()
-    );
+    if (await loginPassword.isVisible().catch(() => false)) {
+      console.log('Existing account detected. Signing in.');
 
-    console.log(
-      'INPUT DETAILS:',
-      await this.page.locator('input').evaluateAll(elements =>
-        elements.map(el => ({
-          type: el.getAttribute('type'),
-          placeholder: el.getAttribute('placeholder'),
-          ariaLabel: el.getAttribute('aria-label'),
-          value: el.getAttribute('type') === 'password'
-            ? '[hidden]'
-            : (el as HTMLInputElement).value
-        }))
-      )
-    );
+      await loginPassword.fill(data.password);
 
-    console.log(
-      'BUTTON DETAILS:',
-      await this.page.locator('button').allTextContents()
-    );
+      await this.page.getByRole('button', {
+        name: /sign in/i
+      }).click();
 
-    throw new Error('Login diagnostic checkpoint.');
+    } else {
+      console.log('New account detected. Registering.');
+
+      await this.page.getByLabel('First Name').fill(data.firstName);
+      await this.page.getByLabel('Last Name').fill(data.lastName);
+      await this.page.getByPlaceholder(/702/).fill(data.phone);
+      await signupPassword.fill(data.password);
+
+      await this.page
+        .getByLabel(/I confirm that I am at least 13 years old/i)
+        .check();
+
+      await this.page.getByRole('button', {
+        name: /submit/i
+      }).click();
+    }
+
+    // Verify successful authentication
+    await expect(
+      this.page.getByText('Applications', { exact: true }).first()
+    ).toBeVisible({ timeout: 30000 });
+
+    console.log('Successfully authenticated.');
+    console.log('Current URL:', this.page.url());
   }
 }
