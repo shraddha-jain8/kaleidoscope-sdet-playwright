@@ -211,7 +211,6 @@ export class ApplicationPage {
     console.log(await this.page.locator('body').innerText());
   }
 
-  // Fill High School fields and inspect the date picker
   async fillHighSchoolPage(data: ApplicantData) {
     const street = this.page.getByPlaceholder(
       'Enter high school street address'
@@ -260,44 +259,49 @@ export class ApplicationPage {
 
     console.log('GPA entered: 3');
 
-    // Do not guess the date format.
-    // Open the actual calendar widget for inspection.
+    // Open the graduation date calendar.
     await graduationDate.click();
 
     await expect(graduationDate).toBeVisible();
 
-    console.log('DATE PICKER CONTENT:');
-    console.log(await this.page.locator('body').innerText());
-
-    const calendarButtons = await this.page.locator(
-      'button:visible'
-    ).evaluateAll(elements =>
-      elements.map(element => ({
-        text: element.textContent?.trim(),
-        ariaLabel: element.getAttribute('aria-label'),
-        title: element.getAttribute('title'),
-        disabled: (element as HTMLButtonElement).disabled
-      }))
+    // The latest test log showed November 2026.
+    // The calendar header contains previous/next month controls.
+    const calendarHeaderControls = this.page.locator(
+      '.mantine-CalendarHeader-control'
     );
 
-    console.log('DATE PICKER BUTTONS:');
-    console.log(JSON.stringify(calendarButtons, null, 2));
+    await expect(calendarHeaderControls).toHaveCount(2);
 
-    const calendarCells = await this.page.locator(
-      '[role="gridcell"], [data-day], [data-calendar-day]'
-    ).evaluateAll(elements =>
-      elements.map(element => ({
-        text: element.textContent?.trim(),
-        ariaLabel: element.getAttribute('aria-label'),
-        title: element.getAttribute('title'),
-        disabled: element.getAttribute('aria-disabled')
-      }))
+    const nextMonthButton = calendarHeaderControls.last();
+
+    // Move from November 2026 to June 2027.
+    for (let month = 0; month < 7; month++) {
+      await nextMonthButton.click();
+    }
+
+    // Confirm the calendar reached the intended month.
+    await expect(
+      this.page.getByText('June 2027', { exact: true })
+    ).toBeVisible();
+
+    // Select the first day of June 2027.
+    const graduationDay = this.page.getByRole('button', {
+      name: '1 June 2027',
+      exact: true
+    });
+
+    await expect(graduationDay).toBeVisible();
+    await graduationDay.click();
+
+    // Confirm the date field is populated.
+    await expect(graduationDate).toHaveValue(/.+/);
+
+    console.log(
+      'Graduation date selected:',
+      await graduationDate.inputValue()
     );
 
-    console.log('DATE PICKER CELLS:');
-    console.log(JSON.stringify(calendarCells, null, 2));
-
-    // Upload synthetic transcript for testing only.
+    // Upload synthetic transcript for automated testing only.
     const transcriptInput = this.page.locator(
       'input[type="file"]'
     );
@@ -311,7 +315,7 @@ export class ApplicationPage {
     });
 
     console.log('Synthetic test transcript selected.');
-    console.log('High School date picker inspection completed.');
+    console.log('High School Information fields completed.');
   }
 
   async inspectCurrentPage() {
