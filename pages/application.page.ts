@@ -6,7 +6,8 @@ import type { ApplicantData } from '../utils/testData';
 export class ApplicationPage {
   constructor(private readonly page: Page) {}
 
-  async completeFirstPage(data: ApplicantData) {
+  // Page 1: Applicant details
+  async fillPage1(data: ApplicantData) {
     await fillByLabel(this.page, /address/i, data.address);
     await fillByLabel(this.page, /city/i, data.city);
     await fillByLabel(this.page, /state/i, data.state);
@@ -19,6 +20,12 @@ export class ApplicationPage {
     await clickContinue(this.page);
   }
 
+  // Alias for compatibility
+  async completeFirstPage(data: ApplicantData) {
+    await this.fillPage1(data);
+  }
+
+  // Page 2: Validate minimum two activities
   async validateMinimumTwoActivities() {
     const usable = this.page.locator(
       'textarea:visible, input:not([type="hidden"]):visible'
@@ -29,7 +36,6 @@ export class ApplicationPage {
     }
 
     await clickContinue(this.page);
-
     await this.page.waitForTimeout(2000);
 
     console.log(
@@ -62,18 +68,20 @@ export class ApplicationPage {
     );
   }
 
+  // Page 2: Provide four activities
   async provideFourActivities(activities: string[]) {
-    for (let i = 0; i < activities.length; i++) {
-      const fields = this.page.locator(
-        'textarea:visible, input:not([type="hidden"]):visible'
-      );
+    const fields = this.page.locator(
+      'textarea:visible, input:not([type="hidden"]):visible'
+    );
 
+    for (let i = 0; i < activities.length; i++) {
       await fields.nth(i).fill(activities[i]);
     }
 
     await clickContinue(this.page);
   }
 
+  // Essay questions
   async completeEssays(data: ApplicantData) {
     await fillByLabel(
       this.page,
@@ -90,12 +98,14 @@ export class ApplicationPage {
     await clickContinue(this.page);
   }
 
+  // Submit application
   async submitApplication() {
     await this.page.getByRole('button', {
       name: /submit/i
     }).click();
   }
 
+  // Verify application is submitted and locked
   async verifyApplicationLocked() {
     await expect(
       this.page.getByText(/submitted|locked/i).first()
