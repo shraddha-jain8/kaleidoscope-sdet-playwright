@@ -6,7 +6,7 @@ import { ApplicationPage } from '../pages/application.page';
 import { createApplicantData } from '../utils/testData';
 
 test.describe('Kaleidoscope applicant application', () => {
-  test('signs in, completes applicant details, adds contributor and activities, and inspects high school page', async ({ page }) => {
+  test('completes applicant details, activities and high school information', async ({ page }) => {
     const data = createApplicantData();
 
     const landing = new LandingPage(page);
@@ -41,10 +41,19 @@ test.describe('Kaleidoscope applicant application', () => {
 
     await test.step('Navigate to High School Information', async () => {
       await application.goToNextPage();
+
+      await expect(
+        page.getByTestId('page-title')
+      ).toContainText(/High School Information/i);
     });
 
-    await test.step('Inspect High School Information form', async () => {
-      await application.inspectHighSchoolPage();
+    await test.step('Complete High School Information', async () => {
+      await application.fillHighSchoolPage(data);
+    });
+
+    await test.step('Navigate to the next page and inspect it', async () => {
+      await application.goToNextPage();
+      await application.inspectCurrentPage();
     });
   });
 });
