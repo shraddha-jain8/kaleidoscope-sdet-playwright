@@ -262,58 +262,52 @@ export class ApplicationPage {
     // Open the graduation date calendar.
     await graduationDate.click();
 
-    await expect(graduationDate).toBeVisible();
+    // Verified from the actual calendar HTML in GitHub Actions.
+    const nextMonthButton = this.page.locator(
+      'button[data-direction="next"]'
+    );
 
-    console.log('DATE PICKER CONTENT:');
-    console.log(await this.page.locator('body').innerText());
+    await expect(nextMonthButton).toHaveCount(1);
 
-    // Inspect visible calendar buttons and their actual HTML.
-    const calendarButtons = await this.page.locator(
-      'button:visible'
-    ).evaluateAll(elements =>
-      elements.map(element => {
-        const button = element as HTMLButtonElement;
-
-        return {
-          text: button.textContent?.trim(),
-          ariaLabel: button.getAttribute('aria-label'),
-          title: button.getAttribute('title'),
-          className: button.className,
-          disabled: button.disabled,
-          outerHTML: button.outerHTML,
-          parentHTML: button.parentElement?.outerHTML
-        };
+    // The calendar starts at November 2026.
+    await expect(
+      this.page.getByRole('button', {
+        name: 'November 2026',
+        exact: true
       })
-    );
+    ).toBeVisible();
 
-    console.log('DATE PICKER BUTTON HTML:');
+    // Move seven months forward to June 2027.
+    for (let month = 0; month < 7; month++) {
+      await nextMonthButton.click();
+    }
+
+    // Verify the displayed month.
+    await expect(
+      this.page.getByRole('button', {
+        name: 'June 2027',
+        exact: true
+      })
+    ).toBeVisible();
+
+    // Select 1 June 2027.
+    const graduationDay = this.page.getByRole('button', {
+      name: '1 June 2027',
+      exact: true
+    });
+
+    await expect(graduationDay).toBeVisible();
+    await graduationDay.click();
+
+    // Verify that the date input has a value.
+    await expect(graduationDate).toHaveValue(/.+/);
+
     console.log(
-      JSON.stringify(
-        calendarButtons.filter(button => !button.text),
-        null,
-        2
-      )
+      'Graduation date selected:',
+      await graduationDate.inputValue()
     );
 
-    console.log('DATE PICKER ALL BUTTONS:');
-    console.log(JSON.stringify(calendarButtons, null, 2));
-
-    // Inspect calendar-related elements and their classes.
-    const calendarElements = await this.page.locator(
-      '[class*="Calendar"], [class*="calendar"], [class*="DatePicker"], [class*="datepicker"]'
-    ).evaluateAll(elements =>
-      elements.map(element => ({
-        tag: element.tagName,
-        className: element.getAttribute('class'),
-        text: element.textContent?.trim().slice(0, 150),
-        outerHTML: element.outerHTML.slice(0, 1500)
-      }))
-    );
-
-    console.log('CALENDAR ELEMENT DETAILS:');
-    console.log(JSON.stringify(calendarElements, null, 2));
-
-    // Upload synthetic transcript for automated testing only.
+    // Synthetic transcript is for automated testing only.
     const transcriptInput = this.page.locator(
       'input[type="file"]'
     );
@@ -327,7 +321,7 @@ export class ApplicationPage {
     });
 
     console.log('Synthetic test transcript selected.');
-    console.log('High School date picker inspection completed.');
+    console.log('High School Information fields completed.');
   }
 
   async inspectCurrentPage() {
