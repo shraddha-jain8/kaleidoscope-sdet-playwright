@@ -51,7 +51,7 @@ test.describe('Kaleidoscope applicant application', () => {
       await application.fillHighSchoolPage(data);
     });
 
-    await test.step('Navigate to the next page and inspect it', async () => {
+    await test.step('Navigate to next page and inspect it', async () => {
       await application.goToNextPage();
       await application.inspectCurrentPage();
     });
