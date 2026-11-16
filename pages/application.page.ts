@@ -1,6 +1,6 @@
 
 import { Page, expect } from '@playwright/test';
-import { fillByLabel, clickContinue } from './helpers';
+import { fillByLabel } from './helpers';
 import type { ApplicantData } from '../utils/testData';
 
 export class ApplicationPage {
@@ -12,10 +12,7 @@ export class ApplicationPage {
     await fillByLabel(this.page, /state/i, data.state);
     await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
 
-    // Select Country.
     const country = this.page.getByPlaceholder(/enter your country/i);
-
-    await country.click();
     await country.fill('India');
 
     const indiaOption = this.page.getByRole('option', {
@@ -25,139 +22,101 @@ export class ApplicationPage {
 
     await expect(indiaOption).toBeVisible();
     await indiaOption.click();
-
-    // Close the dropdown and move to the next field.
     await country.press('Tab');
 
     await expect(country).toHaveValue('India');
 
-    await clickContinue(this.page);
-  }
-
-  async completeFirstPage(data: ApplicantData) {
-    await this.fillPage1(data);
+    await this.page.getByRole('button', {
+      name: /next page/i
+    }).click();
   }
 
   async validateMinimumTwoActivities() {
-    const addContributorButton = this.page.getByRole('button', {
+    await this.page.getByRole('button', {
       name: /add contributor/i
-    });
+    }).click();
 
-    await expect(addContributorButton).toBeVisible();
-    await addContributorButton.click();
+    await this.page.getByPlaceholder('First Name').fill('Automation');
+    await this.page.getByPlaceholder('Last Name').fill('Contributor');
 
-    const firstName = this.page.getByPlaceholder('First Name');
-    const lastName = this.page.getByPlaceholder('Last Name');
-
-    await expect(firstName).toBeVisible();
-
-    await firstName.fill('Automation');
-    await lastName.fill('Contributor');
-
-    const contributorEmail = 'sdet.contributor@example.com';
-    const emailFields = this.page.getByPlaceholder('Email Address');
-
-    await emailFields.nth(0).fill(contributorEmail);
-    await emailFields.nth(1).fill(contributorEmail);
+    const emails = this.page.getByPlaceholder('Email Address');
+    await emails.nth(0).fill('sdet.contributor@example.com');
+    await emails.nth(1).fill('sdet.contributor@example.com');
 
     await this.page.locator('textarea:visible').last().fill(
-      'Please provide feedback and support for my scholarship application. Thank you.'
+      'Please provide feedback and support for my scholarship application.'
     );
 
     await this.page.getByRole('button', {
       name: /^add$/i
     }).click();
 
-    await this.page.waitForTimeout(1000);
-
-    const contributorFormStillVisible = await firstName
-      .isVisible()
-      .catch(() => false);
-
-    console.log(
-      'Contributor form still visible:',
-      contributorFormStillVisible
-    );
-
-    console.log(
-      'PAGE AFTER ADD:',
-      await this.page.locator('body').innerText()
-    );
-
-    if (contributorFormStillVisible) {
-      throw new Error(
-        'Contributor form did not close after clicking Add. Check required fields and validation.'
-      );
-    }
-
-    console.log('Contributor form closed after Add.');
+    await expect(
+      this.page.getByPlaceholder('First Name')
+    ).toBeHidden();
   }
 
   async provideFourActivities(activities: string[]) {
-    console.log('Activity data received:', activities.length);
+    console.log('Activity count:', activities.length);
 
-    const nextButton = this.page.getByRole('button', {
+    await this.page.getByRole('button', {
       name: /next page/i
+    }).click();
+
+    await this.page.waitForTimeout(2500);
+
+    console.log('CURRENT URL:', this.page.url());
+    console.log('PAGE TEXT:', await this.page.locator('body').innerText());
+
+    console.log(
+      'VISIBLE FIELDS:',
+      await this.page.locator(
+        'input:visible, textarea:visible, select:visible, button:visible'
+      ).evaluateAll(elements =>
+        elements.map((element, index) => {
+          const el = element as HTMLInputElement;
+          return {
+            index,
+            tag: el.tagName,
+            type: el.type || '',
+            name: el.name || '',
+            placeholder: el.placeholder || '',
+            value: el.value || '',
+            text: el.innerText || '',
+            required: el.required,
+            disabled: el.disabled
+          };
+        })
+      )
+    );
+
+    await this.page.screenshot({
+      path: 'application-page-after-next.png',
+      fullPage: true
     });
 
-    await expect(nextButton).toBeVisible();
-
-    await nextButton.click();
-
-    // Wait for the application to respond.
-    await this.page.waitForTimeout(2000);
-
-    console.log('APPLICATION URL:', this.page.url());
-
-    console.log(
-      'APPLICATION PAGE TEXT:',
-      await this.page.locator('body').innerText()
-    );
-
-    console.log(
-      'APPLICATION FORM FIELDS:',
-      await this.page
-        .locator('input:visible, textarea:visible, select:visible')
-        .evaluateAll(elements =>
-          elements.map((el, index) => {
-            const input = el as HTMLInputElement;
-
-            return {
-              index,
-              tag: el.tagName,
-              type: input.type || '',
-              name: input.name || '',
-              placeholder: input.placeholder || '',
-              ariaLabel: el.getAttribute('aria-label'),
-              disabled: input.disabled,
-              value: input.value || ''
-            };
-          })
-        )
-    );
-
-    console.log(
-      'APPLICATION BUTTONS:',
-      await this.page.locator('button:visible').allTextContents()
-    );
+    const html = await this.page.content();
+    console.log('APPLICATION HTML:', html);
   }
 
-  async completeEssays(data: ApplicantData) {
-    await fillByLabel(this.page, /animal|animals/i, data.animalEssay);
-    await fillByLabel(this.page, /school|education/i, data.schoolEssay);
-
-    await clickContinue(this.page);
+  async fillPage3AndUpload(data: ApplicantData) {
+    console.log('Academic page inspection required.');
+    throw new Error('Waiting for academic page fields to be identified.');
   }
 
-  async submitApplication() {
-    await this.page.getByRole('button', {
-      name: /submit/i
-    }).click();
+  async validateEssayTypeVisibility() {
+    console.log('Essay page inspection required.');
   }
 
-  async verifyApplicationLocked() {
-    await expect(
-      this.page.getByText(/submitted|locked/i).first()
-    ).toBeVisible({ timeout: 20000 });
+  async selectAnimalsAndSchool(data: ApplicantData) {
+    console.log('Essay answers will be added after page inspection.');
+  }
+
+  async reviewAndSubmit(data: ApplicantData): Promise<string> {
+    throw new Error('Review page inspection required.');
+  }
+
+  async validateSubmittedApplicationCannotBeEdited(url: string) {
+    throw new Error('Submission verification is not implemented yet.');
   }
 }
