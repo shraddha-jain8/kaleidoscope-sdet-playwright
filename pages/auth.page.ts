@@ -17,8 +17,7 @@ export class AuthPage {
     // Step 3: Wait for signup page
     await expect(this.page).toHaveURL(/signup/);
 
-    // Step 4: Fill signup details
-    await this.page.getByLabel('Email Address').fill(data.email);
+    // Step 4: Fill remaining registration details
     await this.page.getByLabel('First Name').fill(data.firstName);
     await this.page.getByLabel('Last Name').fill(data.lastName);
     await this.page.getByPlaceholder(/702/).fill(data.phone);
@@ -32,7 +31,7 @@ export class AuthPage {
     // Step 6: Submit registration
     await this.page.getByRole('button', { name: /submit/i }).click();
 
-    // Step 7: Wait for registration response
+    // Step 7: Capture registration result
     await this.page.waitForLoadState('domcontentloaded');
 
     console.log('URL AFTER REGISTRATION:', this.page.url());
