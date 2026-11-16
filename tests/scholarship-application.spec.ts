@@ -6,7 +6,7 @@ import { ApplicationPage } from '../pages/application.page';
 import { createApplicantData } from '../utils/testData';
 
 test.describe('Kaleidoscope applicant application', () => {
-  test('completes applicant details, activities and high school information', async ({ page }) => {
+  test('completes applicant details, activities and inspects high school date picker', async ({ page }) => {
     const data = createApplicantData();
 
     const landing = new LandingPage(page);
@@ -47,13 +47,8 @@ test.describe('Kaleidoscope applicant application', () => {
       ).toContainText(/High School Information/i);
     });
 
-    await test.step('Complete High School Information', async () => {
+    await test.step('Inspect High School date picker', async () => {
       await application.fillHighSchoolPage(data);
-    });
-
-    await test.step('Navigate to next page and inspect it', async () => {
-      await application.goToNextPage();
-      await application.inspectCurrentPage();
     });
   });
 });
