@@ -1,41 +1,44 @@
+
 import { Page } from '@playwright/test';
-import { fillByLabel, firstVisible } from './helpers';
 import type { ApplicantData } from '../utils/testData';
 
 export class AuthPage {
   constructor(private readonly page: Page) {}
+
   async register(data: ApplicantData) {
-    const register = await firstVisible([
-      this.page.getByRole('link', { name: /register|sign up|create account/i }),
-      this.page.getByRole('button', { name: /register|sign up|create account/i })
-    ]);
-    await register.click();
-    
-await this.page.waitForLoadState('domcontentloaded');
+    // Step 1: Enter email on the login page
+    const email = this.page.getByPlaceholder(/email address/i);
+    await email.fill(data.email);
 
-console.log('CURRENT URL:', this.page.url());
+    // Step 2: Click Next
+    await this.page.getByRole('button').first().click();
 
-console.log(
-  'PAGE TEXT:',
-  await this.page.locator('body').innerText()
-);
+    // Step 3: Wait for the next screen
+    await this.page.waitForTimeout(2000);
 
-console.log(
-  'LINKS:',
-  await this.page.locator('a').allTextContents()
-);
+    // Step 4: Print the next screen details
+    console.log('URL AFTER NEXT:', this.page.url());
 
-console.log(
-  'BUTTONS:',
-  await this.page.locator('button').allTextContents()
-);
+    console.log(
+      'PAGE AFTER NEXT:',
+      await this.page.locator('body').innerText()
+    );
 
-    await fillByLabel(this.page, /first name/i, data.firstName);
-    await fillByLabel(this.page, /last name/i, data.lastName);
-    await fillByLabel(this.page, /email/i, data.email);
-    await fillByLabel(this.page, /^password/i, data.password);
-    const confirm = this.page.getByLabel(/confirm password/i);
-    if (await confirm.count()) await confirm.fill(data.password);
-    await this.page.getByRole('button', { name: /register|sign up|create account/i }).click();
+    console.log(
+      'FIELDS AFTER NEXT:',
+      await this.page.locator('input').evaluateAll(elements =>
+        elements.map(el => ({
+          type: el.getAttribute('type'),
+          name: el.getAttribute('name'),
+          placeholder: el.getAttribute('placeholder'),
+          ariaLabel: el.getAttribute('aria-label')
+        }))
+      )
+    );
+
+    // Temporary checkpoint: remove after inspecting the output
+    throw new Error(
+      'Registration checkpoint: inspect the next screen before continuing.'
+    );
   }
 }
