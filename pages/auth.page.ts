@@ -6,7 +6,7 @@ export class AuthPage {
   constructor(private readonly page: Page) {}
 
   async register(data: ApplicantData) {
-    // Step 1: Enter email on login page
+    // Step 1: Enter email on the login page
     await this.page
       .getByPlaceholder(/email address/i)
       .fill(data.email);
@@ -17,7 +17,7 @@ export class AuthPage {
     // Step 3: Wait for signup page
     await expect(this.page).toHaveURL(/signup/);
 
-    // Step 4: Fill remaining registration details
+    // Step 4: Fill registration details
     await this.page.getByLabel('First Name').fill(data.firstName);
     await this.page.getByLabel('Last Name').fill(data.lastName);
     await this.page.getByPlaceholder(/702/).fill(data.phone);
@@ -29,11 +29,16 @@ export class AuthPage {
       .check();
 
     // Step 6: Submit registration
-    await this.page.getByRole('button', { name: /submit/i }).click();
+    await this.page
+      .getByRole('button', { name: /submit/i })
+      .click();
 
-    // Step 7: Capture registration result
-    await this.page.waitForLoadState('domcontentloaded');
+    // Step 7: Wait for signup form to disappear
+    await expect(
+      this.page.getByLabel('First Name')
+    ).toBeHidden({ timeout: 15000 });
 
+    // Step 8: Print registration result
     console.log('URL AFTER REGISTRATION:', this.page.url());
 
     console.log(
