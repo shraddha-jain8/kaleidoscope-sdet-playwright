@@ -6,16 +6,11 @@ import type { ApplicantData } from '../utils/testData';
 export class ApplicationPage {
   constructor(private readonly page: Page) {}
 
-  // Page 1: Applicant details
   async fillPage1(data: ApplicantData) {
     await fillByLabel(this.page, /address/i, data.address);
     await fillByLabel(this.page, /city/i, data.city);
     await fillByLabel(this.page, /state/i, data.state);
-    await fillByLabel(
-      this.page,
-      /zip|postal code/i,
-      data.postalCode
-    );
+    await fillByLabel(this.page, /zip|postal code/i, data.postalCode);
 
     await clickContinue(this.page);
   }
@@ -24,48 +19,54 @@ export class ApplicationPage {
     await this.fillPage1(data);
   }
 
-  // Page 2: Inspect activity fields and validation
   async validateMinimumTwoActivities() {
-    console.log('PAGE 2 URL:', this.page.url());
+    console.log('BEFORE ADD CONTRIBUTOR:');
+    console.log(await this.page.locator('body').innerText());
+
+    const addContributorButton = this.page.getByRole('button', {
+      name: /add contributor/i
+    });
+
+    await expect(addContributorButton).toBeVisible();
+    await addContributorButton.click();
+
+    await this.page.waitForTimeout(1500);
+
+    console.log('AFTER ADD CONTRIBUTOR:');
+    console.log(await this.page.locator('body').innerText());
 
     console.log(
-      'PAGE 2 TEXT:',
-      await this.page.locator('body').innerText()
+      'VISIBLE FORM FIELDS:',
+      await this.page
+        .locator('input:visible, textarea:visible, select:visible')
+        .evaluateAll(elements =>
+          elements.map((el, index) => {
+            const input = el as HTMLInputElement;
+
+            return {
+              index,
+              tag: el.tagName,
+              type: input.type || '',
+              name: input.name || '',
+              placeholder: input.placeholder || '',
+              ariaLabel: el.getAttribute('aria-label'),
+              disabled: input.disabled,
+              value: input.value || ''
+            };
+          })
+        )
     );
 
     console.log(
-      'ALL VISIBLE FORM FIELDS:',
-      await this.page.locator(
-        'input:visible, textarea:visible, select:visible'
-      ).evaluateAll(elements =>
-        elements.map((el, index) => {
-          const input = el as HTMLInputElement;
-
-          return {
-            index,
-            tag: el.tagName,
-            type: input.type || '',
-            name: input.name || '',
-            placeholder: input.placeholder || '',
-            ariaLabel: el.getAttribute('aria-label'),
-            disabled: input.disabled,
-            value: input.value || ''
-          };
-        })
-      )
-    );
-
-    console.log(
-      'BUTTONS:',
+      'VISIBLE BUTTONS:',
       await this.page.locator('button:visible').allTextContents()
     );
 
     throw new Error(
-      'Page 2 diagnostic checkpoint: inspect activity fields.'
+      'Diagnostic checkpoint: inspect contributor fields.'
     );
   }
 
-  // Page 2: Fill four activities
   async provideFourActivities(activities: string[]) {
     const fields = this.page.locator(
       'textarea:visible:enabled, input:visible:enabled:not([type="hidden"])'
@@ -78,7 +79,6 @@ export class ApplicationPage {
     await clickContinue(this.page);
   }
 
-  // Essay questions
   async completeEssays(data: ApplicantData) {
     await fillByLabel(
       this.page,
@@ -95,14 +95,12 @@ export class ApplicationPage {
     await clickContinue(this.page);
   }
 
-  // Submit application
   async submitApplication() {
     await this.page.getByRole('button', {
       name: /submit/i
     }).click();
   }
 
-  // Verify application is locked
   async verifyApplicationLocked() {
     await expect(
       this.page.getByText(/submitted|locked/i).first()
