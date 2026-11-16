@@ -20,58 +20,55 @@ export class ApplicationPage {
     await clickContinue(this.page);
   }
 
-  // Alias for compatibility
   async completeFirstPage(data: ApplicantData) {
     await this.fillPage1(data);
   }
 
-  // Page 2: Validate minimum two activities
+  // Page 2: Inspect activity fields and validation
   async validateMinimumTwoActivities() {
-    const usable = this.page.locator(
-      'textarea:visible, input:not([type="hidden"]):visible'
-    );
-
-    if (await usable.count()) {
-      await usable.first().fill('Robotics Club');
-    }
-
-    await clickContinue(this.page);
-    await this.page.waitForTimeout(2000);
+    console.log('PAGE 2 URL:', this.page.url());
 
     console.log(
-      'URL AFTER ACTIVITIES VALIDATION:',
-      this.page.url()
-    );
-
-    console.log(
-      'PAGE TEXT AFTER ACTIVITIES VALIDATION:',
+      'PAGE 2 TEXT:',
       await this.page.locator('body').innerText()
     );
 
     console.log(
-      'VISIBLE INPUTS:',
+      'ALL VISIBLE FORM FIELDS:',
       await this.page.locator(
-        'input:visible, textarea:visible'
+        'input:visible, textarea:visible, select:visible'
       ).evaluateAll(elements =>
-        elements.map(el => ({
-          tag: el.tagName,
-          type: el.getAttribute('type'),
-          placeholder: el.getAttribute('placeholder'),
-          label: el.getAttribute('aria-label'),
-          value: (el as HTMLInputElement).value
-        }))
+        elements.map((el, index) => {
+          const input = el as HTMLInputElement;
+
+          return {
+            index,
+            tag: el.tagName,
+            type: input.type || '',
+            name: input.name || '',
+            placeholder: input.placeholder || '',
+            ariaLabel: el.getAttribute('aria-label'),
+            disabled: input.disabled,
+            value: input.value || ''
+          };
+        })
       )
     );
 
+    console.log(
+      'BUTTONS:',
+      await this.page.locator('button:visible').allTextContents()
+    );
+
     throw new Error(
-      'Activities validation diagnostic checkpoint.'
+      'Page 2 diagnostic checkpoint: inspect activity fields.'
     );
   }
 
-  // Page 2: Provide four activities
+  // Page 2: Fill four activities
   async provideFourActivities(activities: string[]) {
     const fields = this.page.locator(
-      'textarea:visible, input:not([type="hidden"]):visible'
+      'textarea:visible:enabled, input:visible:enabled:not([type="hidden"])'
     );
 
     for (let i = 0; i < activities.length; i++) {
@@ -105,7 +102,7 @@ export class ApplicationPage {
     }).click();
   }
 
-  // Verify application is submitted and locked
+  // Verify application is locked
   async verifyApplicationLocked() {
     await expect(
       this.page.getByText(/submitted|locked/i).first()
